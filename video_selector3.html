@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>國術英文</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin: 20px 0;
+    }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    video {
+      width: 150%; /* 縮圖放大 1.5 倍 */
+      border: 4px solid transparent;
+      border-radius: 8px;
+      transition: transform 0.3s, border-color 0.3s;
+      pointer-events: none;
+    }
+    .highlight {
+      border-color: red;
+      animation: blink 0.4s infinite;
+    }
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .selected {
+      width: 85%; /* 占版面 80-90% */
+      height: auto;
+      border-color: blue;
+      animation: none;
+      background: #000;
+      z-index: 1000;
+    }
+    .close-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      font-size: 30px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      z-index: 1001;
+    }
+    button {
+      margin: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>國術英文</h1>
+  <div id="gallery"></div>
+  <button id="controlBtn">開始</button>
+
+  <div id="overlay" class="overlay" style="display:none;">
+    <span id="closeBtn" class="close-btn">×</span>
+  </div>
+
+  <script>
+    const gallery = document.getElementById("gallery");
+    const controlBtn = document.getElementById("controlBtn");
+    const overlay = document.getElementById("overlay");
+    const closeBtn = document.getElementById("closeBtn");
+
+    let videos = [];
+    let currentIndex = 0;
+    let intervalId = null;
+    let state = "idle"; // idle -> running -> stopped
+    let selected = null;
+
+    // 生成 20 個 video 元素
+    for (let i = 1; i <= 20; i++) {
+      const v = document.createElement("video");
+      v.src = `videos/videos (${i}).mp4`;
+      v.preload = "metadata";
+      v.playsInline = true;
+      v.controls = false;
+      gallery.appendChild(v);
+      videos.push(v);
+    }
+
+    function startRunning() {
+      state = "running";
+      controlBtn.textContent = "停止";
+      currentIndex = 0;
+      intervalId = setInterval(() => {
+        videos.forEach(v => v.classList.remove("highlight"));
+        videos[currentIndex].classList.add("highlight");
+        currentIndex = (currentIndex + 1) % videos.length;
+      }, 120);
+    }
+
+    function stopRunning() {
+      state = "stopped";
+      controlBtn.textContent = "重置";
+      clearInterval(intervalId);
+
+      // 找到最後一個 highlight
+      selected = document.querySelector(".highlight");
+      if (selected) {
+        selected.classList.remove("highlight");
+        const clone = selected.cloneNode(true);
+        clone.classList.add("selected");
+        clone.controls = true;
+        clone.muted = false; // 播放時有聲音
+
+        overlay.appendChild(clone);
+        overlay.style.display = "flex";
+
+        clone.currentTime = 0;
+        let playCount = 0;
+        clone.play();
+
+        clone.onended = () => {
+          playCount++;
+          if (playCount < 2) {
+            clone.play();
+          }
+        };
+      }
+    }
+
+    function resetAll() {
+      state = "idle";
+      controlBtn.textContent = "開始";
+      videos.forEach(v => {
+        v.pause();
+        v.classList.remove("highlight", "selected");
+        v.currentTime = 0;
+        v.muted = true; // 重置後預覽靜音
+      });
+      overlay.innerHTML = '<span id="closeBtn" class="close-btn">×</span>';
+      overlay.style.display = "none";
+      document.getElementById("closeBtn").addEventListener("click", closeOverlay);
+    }
+
+    function closeOverlay() {
+      overlay.innerHTML = '<span id="closeBtn" class="close-btn">×</span>';
+      overlay.style.display = "none";
+      document.getElementById("closeBtn").addEventListener("click", closeOverlay);
+    }
+
+    controlBtn.addEventListener("click", () => {
+      if (state === "idle") {
+        startRunning();
+      } else if (state === "running") {
+        stopRunning();
+      } else if (state === "stopped") {
+        resetAll();
+      }
+    });
+
+    closeBtn.addEventListener("click", closeOverlay);
+  </script>
+</body>
+</html>
